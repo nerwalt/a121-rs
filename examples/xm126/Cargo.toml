@@ -33,6 +33,10 @@ num = { version = "0.4", default-features = false, features = ["libm"]}
 tinyrlibc = { version = "0.4", features = ["alloc"] }
 
 static_cell = "2.0.0"
+heapless = { version = "0.7", features = ["defmt"] }
+
+nrf-softdevice = { version = "0.1.0", default-features = false, features = ["nrf52840", "s140", "ble-peripheral", "ble-central", "ble-gatt-server", "critical-section-impl" ] }
+nrf-softdevice-s140 = { version = "0.1.2", default-features = false  }
 
 [profile.dev]
 lto = true
@@ -44,7 +48,7 @@ lto = true
 codegen-units = 1
 opt-level = "s"
 
-[[bin]]
-name = "distance"
-bench = false
-test = false
+# [[bin]]
+# name = "distance"
+# bench = false
+# test = false
