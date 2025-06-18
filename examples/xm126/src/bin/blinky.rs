@@ -15,11 +15,12 @@ async fn main(_spawner: Spawner) {
 
     loop {
         led.set_high();
-        defmt::info!("on");
-        Timer::after_millis(300).await;
+        defmt::info!("high");
+        Timer::after_millis(2000).await;
+
         led.set_low();
-        defmt::info!("off");
-        Timer::after_millis(300).await;
+        defmt::info!("low");
+        Timer::after_millis(2000).await;
     }
 }
 

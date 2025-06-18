@@ -23,6 +23,7 @@ embassy-executor = { version = "0.5.0", features = ["task-arena-size-32768", "ar
 embassy-time = { version = "0.3.1", features = ["defmt", "defmt-timestamp-uptime"] }
 embassy-nrf = { version = "0.1.0", features = ["defmt", "nrf52840", "time-driver-rtc1", "gpiote", "unstable-pac", "time"] }
 embassy-sync = "0.5"
+embassy-futures = "0.1"
 embassy-embedded-hal = { version = "0.1", features = ["defmt"] }
 embedded-hal-bus = { version = "0.1.0", features = ["defmt-03"] }
 
