@@ -3,7 +3,7 @@ pub mod results;
 
 use crate::detector::presence::config::PresenceConfig;
 use crate::detector::presence::results::{PresenceMetadata, PresenceResult, ProcessDataError};
-use crate::radar::{Radar, RadarReady};
+use crate::radar::{Radar, Ready as RadarReady};
 use crate::sensor::calibration::CalibrationResult;
 use crate::sensor::error::SensorError;
 use a121_sys::*;
