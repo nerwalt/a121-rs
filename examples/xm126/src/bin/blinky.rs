@@ -9,18 +9,20 @@ use {defmt_rtt as _, panic_probe as _};
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = embassy_nrf::init(Default::default());
-    let mut led = Output::new(p.P0_04, Level::Low, OutputDrive::Standard);
+
+    // The LED is active low, so initialize the output high to start with the LED off
+    let mut led = Output::new(p.P0_04, Level::High, OutputDrive::Standard);
     
     defmt::info!("blinky");
 
     loop {
-        led.set_high();
-        defmt::info!("high");
-        Timer::after_millis(2000).await;
-
+        defmt::info!("blink");
         led.set_low();
-        defmt::info!("low");
-        Timer::after_millis(2000).await;
+        Timer::after_millis(100).await;
+        led.set_high();
+        Timer::after_millis(100).await;
+
+        Timer::after_secs(1).await;
     }
 }
 
