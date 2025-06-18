@@ -28,9 +28,7 @@ use a121_rs::detector::distance::config::{
 use a121_rs::config::frame_rate::FrameRate;
 use a121_rs::config::profile::RadarProfile;
 use a121_rs::detector::distance::RadarDistanceDetector;
-use a121_rs::radar;
-use a121_rs::radar::Radar;
-use radar::rss_version;
+use a121_rs::radar::{self, Radar, version::rss_version};
 
 use xm126::adapter::SpiAdapter;
 use xm126::*;
@@ -45,7 +43,7 @@ async fn main(_spawner: Spawner) {
 
     let enable = Output::new(p.P0_15, Level::Low, OutputDrive::Standard); 
     let cs_pin = Output::new(p.P1_07, Level::Low, OutputDrive::Standard);
-    let interrupt = Input::new(p.P0_08, Pull::Down);
+    let interrupt = Input::new(p.P0_08, Pull::Up);
     info!("GPIO initialized.");
 
     let spi = spim::Spim::new(
@@ -63,14 +61,18 @@ async fn main(_spawner: Spawner) {
 
     debug!("RSS Version: {}", rss_version());
 
+    info!("Enabling radar.");
     let mut radar = Radar::new(1, spi_mut_ref.get_mut(), interrupt, enable, Delay).await;
     info!("Radar enabled.");
+
+    info!("Calibrating.");
     let mut calibration = radar.calibrate().await.unwrap();
     info!("Calibration complete.");
-    let mut radar = radar.prepare_sensor(&mut calibration).unwrap();
-    radar.config.set_frame_rate(FrameRate::Limited(1.0));
 
-    info!("Frame Rate: {:?}", radar.config.frame_rate().value());
+    let mut foo = radar.prepare_sensor(&mut calibration).unwrap();
+    foo.config.set_frame_rate(FrameRate::Limited(1.0));
+
+    info!("Frame Rate: {:?}", foo.config.frame_rate().value());
 
     let mut dist_config = RadarDistanceConfig::balanced();
     dist_config.set_interval(0.5..=3.0);
@@ -82,48 +84,48 @@ async fn main(_spawner: Spawner) {
     // dist_config.set_threshold_method(ThresholdMethod::Cfar);
     // dist_config.set_threshold_sensitivity(0.0);
     // dist_config.set_signal_quality(-10.0);
-    let mut distance = RadarDistanceDetector::with_config(&mut radar, dist_config);
+
+    let mut distance = RadarDistanceDetector::with_config(&mut foo, dist_config);
     let mut buffer = vec![0u8; distance.get_distance_buffer_size()];
     let mut static_cal_result = vec![0u8; distance.get_static_result_buffer_size()];
 
-    Timer::after_secs(3).await;
-    trace!("Calibrating detector...");
-    let mut dynamic_cal_result = distance
-        .calibrate_detector(&calibration, &mut buffer, &mut static_cal_result)
-        .await
-        .unwrap();
+    // trace!("Calibrating detector...");
+    // let mut dynamic_cal_result = distance
+    //     .calibrate_detector(&calibration, &mut buffer, &mut static_cal_result)
+    //     .await
+    //     .unwrap();
 
-    // let mut dynamic_cal_result = match select(
-    //     distance.calibrate_detector(&calibration, &mut buffer, &mut static_cal_result),
-    //     Timer::after_secs(120),
-    // ).await {
-    //     Either::First(result) => result.unwrap(),
-    //     Either::Second(_) => panic!("TImeout calibrating detector"),
-    // };
+    // // let mut dynamic_cal_result = match select(
+    // //     distance.calibrate_detector(&calibration, &mut buffer, &mut static_cal_result),
+    // //     Timer::after_secs(120),
+    // // ).await {
+    // //     Either::First(result) => result.unwrap(),
+    // //     Either::Second(_) => panic!("TImeout calibrating detector"),
+    // // };
 
-    loop {
-        distance
-            .prepare_detector(&calibration, &mut buffer)
-            .unwrap();
-        distance.measure(&mut buffer).await.unwrap();
+    // loop {
+    //     distance
+    //         .prepare_detector(&calibration, &mut buffer)
+    //         .unwrap();
+    //     distance.measure(&mut buffer).await.unwrap();
 
-        match distance.process_data(&mut buffer, &mut static_cal_result, &mut dynamic_cal_result) {
-            Ok(res) => {
-                if res.num_distances() > 0 {
-                    info!("Distances: {} {:?}", res.num_distances(), res.distances());
-                }
-                if res.calibration_needed() {
-                    info!("Calibration needed.");
-                    let calibration = distance.calibrate().await.unwrap();
-                    dynamic_cal_result = distance
-                        .update_calibration(&calibration, &mut buffer)
-                        .await
-                        .unwrap();
-                }
-            }
-            Err(_) => {}//warn!("Failed to process data."),
-        }
+    //     match distance.process_data(&mut buffer, &mut static_cal_result, &mut dynamic_cal_result) {
+    //         Ok(res) => {
+    //             if res.num_distances() > 0 {
+    //                 info!("Distances: {} {:?}", res.num_distances(), res.distances());
+    //             }
+    //             if res.calibration_needed() {
+    //                 info!("Calibration needed.");
+    //                 let calibration = distance.calibrate().await.unwrap();
+    //                 dynamic_cal_result = distance
+    //                     .update_calibration(&calibration, &mut buffer)
+    //                     .await
+    //                     .unwrap();
+    //             }
+    //         }
+    //         Err(_) => {}//warn!("Failed to process data."),
+    //     }
 
-        Timer::after_millis(3000).await;
-    }
+    //     Timer::after_millis(3000).await;
+    // }
 }
