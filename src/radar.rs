@@ -156,7 +156,7 @@ where
     }
 
     #[require(A)]
-    pub async fn reset_sensor(&mut self) {
+    pub async fn reset_sensor(&mut self) -> () {
         self.sensor.reset_sensor().await;
     }
 
@@ -166,7 +166,7 @@ where
     }
 
     #[require(A)]
-    pub fn check_status(&self) {
+    pub fn check_status(&self) -> () {
         self.sensor.check_status();
     }
 
