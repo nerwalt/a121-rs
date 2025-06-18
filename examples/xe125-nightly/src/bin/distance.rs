@@ -16,9 +16,8 @@ use embedded_hal_bus::spi::ExclusiveDevice;
 
 use a121_rs::detector::distance::config::RadarDistanceConfig;
 use a121_rs::detector::distance::RadarDistanceDetector;
-use a121_rs::radar;
+use a121_rs::radar::version::rss_version;
 use a121_rs::radar::Radar;
-use radar::rss_version;
 use xe125_nightly::adapter::SpiAdapter;
 use xe125_nightly::*;
 
@@ -43,7 +42,11 @@ async fn main(_spawner: Spawner) {
     );
     let exclusive_device = ExclusiveDevice::new(spi, cs_pin, Delay);
 
-    unsafe { SPI_DEVICE = Some(RefCell::new(SpiAdapter::new(exclusive_device))) };
+    unsafe {
+        SPI_DEVICE = Some(RefCell::new(SpiAdapter::new(
+            exclusive_device.expect("SPI device init failed!"),
+        )))
+    };
     let spi_mut_ref = unsafe { SPI_DEVICE.as_mut().unwrap() };
 
     debug!("RSS Version: {}", rss_version());
