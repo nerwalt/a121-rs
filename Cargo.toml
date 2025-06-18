@@ -24,7 +24,8 @@ embassy-sync = { version = "0.6.0", features = [ "defmt" ] }
 num = { version = "0.4", default-features = false }
 libm = { version = "0.2.8", default-features = false, optional = true }
 
-state-shift = { git = "https://github.com/ozgunozerk/state-shift", branch = "main" }
+state-shift = { version = "2.1.1" }
+
 [build-dependencies]
 bindgen = "0.70"
 cc = "1.0"
