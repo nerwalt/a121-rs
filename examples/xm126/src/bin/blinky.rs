@@ -16,13 +16,13 @@ async fn main(_spawner: Spawner) {
     defmt::info!("blinky");
 
     loop {
-        defmt::info!("blink");
-        led.set_low();
-        Timer::after_millis(100).await;
         led.set_high();
-        Timer::after_millis(100).await;
+        defmt::info!("on");
+        Timer::after_millis(300).await;
 
-        Timer::after_secs(1).await;
+        led.set_low();
+        defmt::info!("off");
+        Timer::after_millis(300).await;
     }
 }
 

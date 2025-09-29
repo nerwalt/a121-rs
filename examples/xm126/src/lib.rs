@@ -1,39 +1,66 @@
 #![no_std]
 
-extern crate alloc;
-
-use core::cell::RefCell;
-
+use core::mem::MaybeUninit;
+use embassy_nrf::bind_interrupts;
 use embassy_nrf::gpio::Output;
-use embassy_nrf::peripherals;
-use embassy_nrf::spim::Spim;
+use embassy_nrf::spim::{self, Spim};
 use embassy_time::Delay;
+use embedded_alloc::LlffHeap as Heap;
 use embedded_hal_bus::spi::ExclusiveDevice;
-use talc::{ClaimOnOom, Span, Talc, Talck};
 use tinyrlibc as _;
-use {defmt_rtt as _, panic_probe as _};
-
-use crate::adapter::SpiAdapter;
+use static_cell::StaticCell;
 
 pub mod adapter;
+use adapter::SpiAdapter;
 
-static mut ARENA: [u8; 16384] = [0u8; 16384];
+//
+// Heap
+//
+pub const HEAP_SIZE: usize = 32 * 1024;
 
 #[global_allocator]
-static ALLOCATOR: Talck<spin::Mutex<()>, ClaimOnOom> = Talc::new(unsafe {
-    // if we're in a hosted environment, the Rust runtime may allocate before
-    // main() is called, so we need to initialize the arena automatically
-    ClaimOnOom::new(Span::from_const_array(core::ptr::addr_of!(ARENA)))
-})
-.lock();
+pub static HEAP: Heap = Heap::empty();
 
-// bind_interrupts!(struct Irqs {
-//     SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0 => twim::InterruptHandler<peripherals::TWISPI0>;
-// });
+pub fn init_heap() {
+    static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
+    #[allow(static_mut_refs)]
+    unsafe {
+        HEAP.init(HEAP_MEM.as_ptr() as usize, HEAP_SIZE)
+    }
+}
 
-// The chip select line on the A121 on the XM126 is grounded and thus no used. Here, we give
-// ExclusiveDevice an un-used pin to make it happy.
-pub type SpiDeviceMutex =
-    ExclusiveDevice<Spim<'static, peripherals::TWISPI0>, Output<'static, peripherals::P1_07>, Delay>;
 
-pub static mut SPI_DEVICE: Option<RefCell<SpiAdapter<SpiDeviceMutex>>> = None;
+//
+// Hardware peripherals on the XM126
+//
+pub mod peripherals {
+    use embassy_nrf::peripherals;
+
+    pub type A121Enable = peripherals::P0_15;
+    pub type A121Interrupt = peripherals::P0_08;
+
+    pub type Spi = peripherals::TWISPI0;
+    pub type SpiSck = peripherals::P0_27;
+    pub type SpiMiso = peripherals::P0_05;
+    pub type SpiMos = peripherals::P1_08;
+
+    // The SPI chip/slave-select (CS/SS) on the XM126 is tied to ground to make it the single,
+    // exclusive SPI slave device on the bus. We still need to provide a pin to the driver, so pick
+    // any unused pin for the CS pin.
+    pub type SpiCs = peripherals::P1_07; 
+}
+
+//
+// SPI 
+//
+
+bind_interrupts!(pub struct Irqs {
+    TWISPI0 => spim::InterruptHandler<peripherals::Spi>;
+});
+
+type RawSpi = Spim<'static>;
+type ExclusiveRawSpi = ExclusiveDevice<RawSpi, Output<'static>, Delay>;
+pub type RadarSpi = SpiAdapter<ExclusiveRawSpi>;
+
+pub static RADAR_SPI: StaticCell<RadarSpi> = StaticCell::new();
+
